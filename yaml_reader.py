@@ -2,6 +2,7 @@ import yaml
 import os
 import csv
 from bunch import bunchify
+from geopy.geocoders import Nominatim
 
 #Path to the directory in which all the files exist
 path = "K://IUB Sem-4//Data mining- B565//odis//"
@@ -10,7 +11,7 @@ file_names = os.listdir(path) #stores the file names (with extensions) in a list
 #Iterates over each file to get the binary values of the features and ignores the matches in
 #which the match outcome is not there (if the match is cancelled (due to rain or other reasons)
 for files in file_names:
-    print "filename", files
+    print("filename", files)
     fpath = "K://IUB Sem-4//Data mining- B565//odis//" + files
     with open(fpath, 'r') as stream:
         datamap = yaml.safe_load(stream)
@@ -34,6 +35,7 @@ for files in file_names:
         team2_wicket_count = 0
         team1_wicket = 0
         team2_wicket = 0
+        home_match = 0
         features_list = []
 
         if(x['info']['toss']['winner'] == x.info.teams[0]):
@@ -102,6 +104,26 @@ for files in file_names:
             team1_winner = 1
         else:
             team1_winner = 0
+
+        #to get information of home or away match
+        geolocator = Nominatim()
+        #city = x['info']['venue'].replace(',', '')
+        if(x.info.has_key('city')):
+            location = geolocator.geocode(x['info']['city'])
+            address = [x.strip() for x in location._address.split(',')]
+            if(address[-1]== "United Kingdom"):
+                if(address[2] == "England") & (first_bat_team == "England"):
+                    home_match = 1
+            elif(address[-1] == first_bat_team):
+                home_match = 1
+        else:
+            location = geolocator.geocode(x['info']['venue'])
+            address = [x.strip() for x in location._address.split(',')]
+            if(address[-1]== "United Kingdom"):
+                if(address[2] == "England") & (first_bat_team == "England"):
+                    home_match = 1
+            elif(address[-1] == first_bat_team):
+                home_match = 1
         features_list.append(team1_abv300)
         features_list.append(team1_less200)
         features_list.append(team1_between200n300)
@@ -111,9 +133,7 @@ for files in file_names:
         features_list.append(team2_between200n300)
         features_list.append(team2_wicket)
         features_list.append(team1_winner)
-        print features_list
-        out = csv.writer(open('K://IUB Sem-4//Data mining- B565//features_dataset',"ab"), delimiter=',',quoting=csv.QUOTE_MINIMAL)
+        features_list.append(home_match)
+        print(first_bat_team, home_match, location._address)
+        out = csv.writer(open('K://IUB Sem-4//Data mining- B565//features_dataset.csv',"ab"), delimiter=',',quoting=csv.QUOTE_MINIMAL)
         out.writerow(features_list)
-        '''with open('K://IUB Sem-4//Data mining- B565//odis//features_dataset', 'a') as myfile:
-            wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
-            wr.writerow(features_list)'''
