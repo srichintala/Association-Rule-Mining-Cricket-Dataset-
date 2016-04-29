@@ -46,7 +46,7 @@ public class RuleGeneration {
      * Sorting(descending order) based on Laplace is required to remove rules with low coverage and high accuracy..
      * Such rules will be at the end of the list and will be removed during rule pruning...
      */
-    public static void sortListRuleObj(String type){
+    public static void sortListRuleObj(final String type){
     	Collections.sort(listRuleObj, new Comparator<RuleObj>(){
     		@Override
     		public int compare(RuleObj r1, RuleObj r2){
