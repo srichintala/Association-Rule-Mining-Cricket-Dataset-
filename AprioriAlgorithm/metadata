@@ -1,0 +1,8 @@
+/media/jay/DDrive/Jay/IUB/Spring 2016/FinalProject/cricket_teamRank_diff.csv
+18
+Team1_Won_Toss,Team2_Won_Toss,Team1_Home, Team2_Home, Neutral,Team1_gt_300, Team1_lt_200, Team1_b/w_200_and_300, Team2(till 25th over)_gt_200,Team2(till 25th over)_b/w_200_and_150, Team2(till 25th over)_b/w_150_and_100, Team2(till 25th over)_lt_100, Team2 Wickets(till 25th over)_lt_2, Team2 Wickets(till 25th over)_b/w 2_and_4, Team2 Wickets(till 25th over)_b/w 4_and_6,  17_Team2 Wickets(till 25th over)_gt_6,Team1>Team2,Team2>Team1
+binary,binary,binary,binary,binary,binary,binary,binary,binary,binary,binary,binary,binary,binary,binary,binary,binary,binary
+binary
+0.01
+0.5
+Confidence
