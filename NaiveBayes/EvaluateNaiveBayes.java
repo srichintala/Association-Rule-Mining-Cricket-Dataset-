@@ -1,5 +1,6 @@
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -12,12 +13,14 @@ public class EvaluateNaiveBayes {
    static int fp;
    static int tn;
    static int fn;
+   static List<NaiveBayesRoc> listNaiveBayesRoc;
    
-   public static void init(int folds){
+   public static void init(int folds, int index){
 	   CrossValidation.init(folds);
 	   NaiveBayes.init();
 	   curDir = System.getProperty("user.dir");
-	   trivial_index = 2;  // Team 1 Home
+	   trivial_index = index;  // Team 1 Home
+	   listNaiveBayesRoc = new ArrayList<NaiveBayesRoc>();
    }
    
    public static void resetCounters(){
@@ -49,6 +52,9 @@ public class EvaluateNaiveBayes {
 	   return f1;
 	}
    
+	/*
+	 * Below method reads the test set
+	 */
    public static void readTestData(String path, String sep, boolean display_YN, boolean is_trivial_classifier) throws Exception{
 		BufferedReader br = new BufferedReader(new FileReader(path));
 		String s = "";
@@ -72,14 +78,19 @@ public class EvaluateNaiveBayes {
 		br.close();
 	}
    
+   /*
+    * Below method evaluates the Naive Bayes Classifier
+    */
    public static void evalNaiveBayes(String[] record){
-		float pos_prob = NaiveBayes.computePosteriorProb(record, "1");  // positive class
-		float neg_prob = NaiveBayes.computePosteriorProb(record, "0");  // negative class
+		float pos_prob = NaiveBayes.computePosteriorProb(record, "1"); // compute posterior probability for positive class
+		float neg_prob = NaiveBayes.computePosteriorProb(record, "0"); // compute posterior probability for negative class
 		
 		String predicted_class = "";
 		
-		if(pos_prob>=neg_prob)
+		if(pos_prob>=neg_prob){
 		   predicted_class = "1";
+		   listNaiveBayesRoc.add(new NaiveBayesRoc(pos_prob, record[record.length-1]));
+		}
 		else
 		   predicted_class = "0";
 		
@@ -94,39 +105,41 @@ public class EvaluateNaiveBayes {
 		
 	}
    
+   /*
+    * Below method evaluates the Trivial Classifier
+    */
    public static void evalTrivialClassifier(String[] record){
-	   for(Integer key : NaiveBayes.hashPosClass.keySet()){
-		   List<String> list = NaiveBayes.hashPosClass.get(key);
-		   
-		   if(list.get(trivial_index).equals("1") && record[record.length-1].equals("1"))
-			   tp++;
-		   else if(list.get(trivial_index).equals("1") && !record[record.length-1].equals("1"))
-			   fp++;
-		   else if(list.get(trivial_index).equals("0") && record[record.length-1].equals("0"))
-			   tn++;
-		   else
-			   fn++;
+	   
+	   if(record[trivial_index].equals("1") && record[record.length-1].equals("1"))
+		   tp++;
+	   else if(record[trivial_index].equals("1") && !record[record.length-1].equals("1"))
+		   fp++;
+	   else if(record[trivial_index].equals("0") && record[record.length-1].equals("0"))
+		   tn++;
+	   else
+		   fn++;
+	   
+   }
+   
+   /*
+    * Below method generates the ROC prediction plot...Used to plot the ROC curve...
+    */
+   public static void generateNaiveBayesRoc(String path) throws Exception{
+	   FileWriter fw = new FileWriter(path);
+	   
+	   fw.write("Predictions, Label\n");
+	   for(NaiveBayesRoc roc : listNaiveBayesRoc){
+		   fw.write(roc.prob+","+roc.actual_class+"\n");
 	   }
 	   
-	   for(Integer key : NaiveBayes.hashNegClass.keySet()){
-		   List<String> list = NaiveBayes.hashNegClass.get(key);
-		   
-		   if(list.get(trivial_index).equals("1") && record[record.length-1].equals("1"))
-			   tp++;
-		   else if(list.get(trivial_index).equals("1") && !record[record.length-1].equals("1"))
-			   fp++;
-		   else if(list.get(trivial_index).equals("0") && record[record.length-1].equals("0"))
-			   tn++;
-		   else
-			   fn++;
-	   }
-	   
+	   fw.close();
    }
    
    public static void main(String[] args) throws Exception{
 	  int k = 10;
+	  int trivial_index = 2;  // Team 1 Home match
 	  
-	  init(k);
+	  init(k, trivial_index);
 	  float total_tp = 0f;
 	  float total_fp = 0f;
 	  float total_tn = 0f;
@@ -136,7 +149,7 @@ public class EvaluateNaiveBayes {
 	  
 	  boolean roc_YN = false;
 	  boolean display_YN = true;
-	  String filename =  "cricket_train_naive_bayes.csv";
+	  String filename =  "cricket_train_set.csv";
 	  String sep = ",";
 	  int pos = filename.lastIndexOf(".");
 	  String ext = filename.substring(pos);
@@ -145,6 +158,7 @@ public class EvaluateNaiveBayes {
 	  CrossValidation.readDataset(path, false); 
 	  int records = CrossValidation.hash.size();
 	  
+	  System.out.println("Running Cross-Validation...\n");
 	  for(int i=1;i<=k;i++){
 		   resetCounters();
 		   
@@ -181,10 +195,20 @@ public class EvaluateNaiveBayes {
 	  /***********************************************************************************/
 	  
 	  resetCounters();
-	  filename = "cricket_test_naive_bayes.csv";
+	  NaiveBayes.reset();
+	  
+	  filename = "cricket_train_set.csv";
+	  path = curDir+"\\"+filename;
+	  NaiveBayes.readTrainData(path, sep);
+	   
+	  filename = "cricket_test_set.csv";
 	  path = curDir + "\\" + filename;
 	  display_YN = false;
 	  readTestData(path, sep, display_YN, trivial_classifier_YN);
+	  
+	  filename = "naive_bayes_roc.csv";
+	  path = curDir + "\\" + filename;
+	  generateNaiveBayesRoc(path);
 	  
 	  total_accuracy = (float)(tp+tn)/(tp+tn+fp+fn);
 	  bal_accuracy = getBalancedAccuracy(tp, tn, fp, fn);
@@ -193,7 +217,6 @@ public class EvaluateNaiveBayes {
 	  f1_measure = getF1Measure(precision, recall);
 	  
 	  System.out.println("\n------- Test Set Statistics --------");
-	  //System.out.println("tp: "+tp+", tn: "+tn+", fp: "+fp+", fn: "+fn);
 	  System.out.println("Simple Accuracy: "+total_accuracy);
 	  System.out.println("Balanced Accuracy: "+bal_accuracy);
 	  System.out.println("Precision: "+precision);
@@ -204,6 +227,8 @@ public class EvaluateNaiveBayes {
 	  /***************************************************************************/
 	  resetCounters();
 	  trivial_classifier_YN = true;
+	  filename = "cricket_test_set.csv";
+	  path = curDir + "\\" + filename;
 	  readTestData(path, sep, display_YN, trivial_classifier_YN);
 	  
 	  total_accuracy = (float)(tp+tn)/(tp+tn+fp+fn);

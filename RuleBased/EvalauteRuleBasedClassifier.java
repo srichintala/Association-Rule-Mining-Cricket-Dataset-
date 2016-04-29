@@ -1,7 +1,6 @@
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.FileWriter;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -65,6 +64,9 @@ public class EvalauteRuleBasedClassifier {
 	   return f1;
 	}
 	
+	/*
+	 * Below method evaluates the trivial classifier
+	 */
 	public static void evalTrivialClassifier(String[] record){
 			 
 		 if(record[trivial_index].equals("1") && record[record.length-1].equals("1"))
@@ -101,11 +103,11 @@ public class EvalauteRuleBasedClassifier {
 		System.out.println();
 	}*/
 	
+	/*
+	 * Below method predicts the class label
+	 */
 	public static void predictClass(String[] record){
 		int count = 0 ;
-		
-		//int cnt = 0;
-		
 		
 		for(RuleObj rule : listRuleObj){
 			count=0;
@@ -147,6 +149,9 @@ public class EvalauteRuleBasedClassifier {
 		}
 	}
 	
+	/*
+	 * Below method reads the test set data
+	 */
 	public static void readTestData(String path, boolean display_YN, boolean is_trivial_classifier) throws Exception{
 		BufferedReader br = new BufferedReader(new FileReader(path));
 		String s = "";
@@ -171,11 +176,15 @@ public class EvalauteRuleBasedClassifier {
 		br.close();
 	}
 	
+	
 	public static void performRuleGeneration(String class_label, float cutoff){
 		RuleGeneration.populateInitialLevel(class_label);
 		RuleGeneration.generateRules(class_label, cutoff);
 	}
 	
+	/*
+	 * Below method builds the validation set...
+	 */
 	public static void buildValidationSet(String path) throws Exception{
 		BufferedReader br = new BufferedReader(new FileReader(path));
 		String s="";
@@ -206,13 +215,13 @@ public class EvalauteRuleBasedClassifier {
 		
 	}
 	
+	/*
+	 * Below method builds the Rule base...The cut-off threshold for accuracy is tuned using the validation set...
+	 */
 	public static void buildRuleBase(String path, String sep, boolean hasHeader, String class_label) throws Exception{
 		boolean is_trivial_classifier = false;
 		float init_cutoff = 0.5f;
-		//float best_cutoff = init_cutoff;
 		float max = Float.NEGATIVE_INFINITY;
-		//correct = 0;
-		//wrong = 0;
 		
 		resetCounters();
 		
@@ -233,9 +242,7 @@ public class EvalauteRuleBasedClassifier {
 		   listRuleObj = RuleGeneration.listRuleObj;
 		}
 		
-		for(float i=0.6f;i<=0.85f;i+=0.05f){
-		   //correct = 0;
-		   //wrong = 0;
+		for(float i=0.6f;i<=0.85f;i+=0.05f){  // for tuning the cut-off threshold...
 		   resetCounters();
 		   
 		   RuleGeneration.listRuleObj = RuleGeneration.listRuleObjBeforePrune;
@@ -249,16 +256,16 @@ public class EvalauteRuleBasedClassifier {
 		   if(accuracy> max){
 			 listRuleObj = new ArrayList<RuleObj>();  
 			 max = accuracy; 
-			 //best_cutoff = i;
 		     listRuleObj = RuleGeneration.listRuleObj;   // best rules get stored in listRuleObj
 		   }
 		}
 		
-		//correct = 0;
-		//wrong = 0;
 		resetCounters();
 	}
 	
+	/*
+	 * Below method generates the ROC prediction plot...Used for plotting the ROC curve..
+	 */
 	public static void generateRocFile(String filename) throws Exception{
 		FileWriter fw = new FileWriter(filename);
 		fw.write("Predictions,Label\n");
@@ -273,7 +280,7 @@ public class EvalauteRuleBasedClassifier {
 	
 	public static void main(String[] args) throws Exception{
 	   int k = 10;
-	   int trivial_index = 2;
+	   int trivial_index = 2;  // Team 1 home match
 	   
 	   init(k, trivial_index);
 	   
@@ -292,7 +299,7 @@ public class EvalauteRuleBasedClassifier {
 	   String filename = "cricket_header.csv";
 	   String header_path = curDir+"\\"+filename;
 	   
-	   filename =  "cricket_train_rule_based.csv";
+	   filename =  "cricket_train_set.csv";
 	   int pos = filename.lastIndexOf(".");
 	   String ext = filename.substring(pos);
 	   String path = curDir+"\\"+filename;
@@ -300,6 +307,7 @@ public class EvalauteRuleBasedClassifier {
 	   CrossValidation.readDataset(path, false); 
 	   int records = CrossValidation.hash.size();
 	   
+	   System.out.println("Running Cross-Validation...\n");
 	   for(int i=1;i<=k;i++){
 		   resetCounters();
 		   
@@ -355,7 +363,7 @@ public class EvalauteRuleBasedClassifier {
 	   listRuleObj = listBestRuleObj;
 	   listRocObj.clear();
 	   
-	   filename = "cricket_test_rule_based.csv";
+	   filename = "cricket_test_set.csv";
 	   path = curDir + "\\" + filename;
 	   readTestData(path, false, is_trivial_classifier);
 	   
@@ -370,7 +378,6 @@ public class EvalauteRuleBasedClassifier {
 	   
 	   total_accuracy = (float)(tp+tn)/(tp+tn+fp+fn);
 	   System.out.println("\n------- Test Set Statistics --------");
-	   //System.out.println("tp: "+tp+", tn: "+tn+", fp: "+fp+", fn: "+fn);
 	   System.out.println("Simple Accuracy: "+total_accuracy);
 	   System.out.println("Balanced Accuracy: "+bal_accuracy);
 	   System.out.println("Precision: "+precision);
@@ -393,7 +400,6 @@ public class EvalauteRuleBasedClassifier {
 	   
 	   System.out.println("\nTrivial Classifier: If Team 1 plays at Home, then assign Positive class(Team 1 Wins)");
 	   System.out.println("\n------- Trivial Classifier Statistics --------");
-	   //System.out.println("tp: "+tp+", tn: "+tn+", fp: "+fp+", fn: "+fn);
 	   total_accuracy = (float)(tp+tn)/(tp+tn+fp+fn);
 	   System.out.println("Simple Accuracy: "+total_accuracy);
 	   System.out.println("Balanced Accuracy: "+bal_accuracy);

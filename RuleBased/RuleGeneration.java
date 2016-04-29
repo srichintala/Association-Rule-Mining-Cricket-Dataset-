@@ -40,6 +40,12 @@ public class RuleGeneration {
     	hashNameToIndex.clear();
     }
     
+    /*
+     * The list of Rule Objects are sorted based on the input parameter.
+     * The input parameter values can be accuracy or laplace...
+     * Sorting(descending order) based on Laplace is required to remove rules with low coverage and high accuracy..
+     * Such rules will be at the end of the list and will be removed during rule pruning...
+     */
     public static void sortListRuleObj(String type){
     	Collections.sort(listRuleObj, new Comparator<RuleObj>(){
     		@Override
@@ -78,6 +84,10 @@ public class RuleGeneration {
     	sortListRuleObj(type);
     }
     
+    /*
+     * Below method removes the unwanted rules based on the cut-off threshold...
+     * The validation set is used to tune this cut-off threshold in cross-validation
+     */
     public static void removeNegRules(float cutoff){
     	for(int i=listRuleObj.size()-1;i>=0;i--){
     		if(listRuleObj.get(i).accuracy < cutoff)
@@ -85,6 +95,10 @@ public class RuleGeneration {
     	}
     }
     
+    /*
+     * Below method prunes the rules by removing the positive and negative examples from rules already covered
+     * in other rules
+     */
     public static void pruneRules(float cutoff){
     	for(int i=0;i<listRuleObj.size();i++){
     	   RuleObj rule_obj = listRuleObj.get(i);
@@ -97,24 +111,22 @@ public class RuleGeneration {
     		  for(Integer record : hash_rule_obj.keySet()){
     			 if(hash_next_rule_obj.containsKey(record)){
     				 if(hash_next_rule_obj.get(record)){
-    					 //System.out.println("Name: "+next_rule_obj.name);
-    					 next_rule_obj.pos_count-=1;
-    				 }
+    					 next_rule_obj.pos_count-=1;  // if the positive example is covered in previous rules, then...
+    				 }                                // its count is decremented
     				 else{
-    					 //System.out.println("Name: "+next_rule_obj.name);
-    					 next_rule_obj.neg_count-=1;
+    					 next_rule_obj.neg_count-=1;  // Similarly for the negative example
     				 }
     				 
-    				 hash_next_rule_obj.remove(record);
+    				 hash_next_rule_obj.remove(record);  // the instance is removed from the rule object
     			  }
     		   }
     		  
     		  if(next_rule_obj.pos_count+next_rule_obj.neg_count == 0)
-    			 next_rule_obj.accuracy = 0;
+    			 next_rule_obj.accuracy = 0;      // new accuracy is updated
     		  else
     		     next_rule_obj.accuracy = (float)next_rule_obj.pos_count/(next_rule_obj.pos_count+next_rule_obj.neg_count);
     	   
-    		  next_rule_obj.laplace = computeLaplace(next_rule_obj);
+    		  next_rule_obj.laplace = computeLaplace(next_rule_obj);  // laplace is recomputed...
     	   
     	   }
     	}
@@ -122,7 +134,9 @@ public class RuleGeneration {
     	sortListRuleObj("accuracy");
     	
     	for(RuleObj rule : listRuleObj){
-    		listRuleObjBeforePrune.add(rule);
+    		listRuleObjBeforePrune.add(rule);  // Rules are stored in this list before pruning...
+    										   // Used in EvaluateRuleBasedClassifier.buildRuleBase() for tuning...
+    		                                   // cut-off threshold
     	}
     	
     	removeNegRules(cutoff);
@@ -140,6 +154,9 @@ public class RuleGeneration {
     	return pos_count;
     }
     
+    /*
+     * Below method reads the header of the dataset...
+     */
     public static void readHeader(String path, String sep) throws Exception{
     	BufferedReader br = new BufferedReader(new FileReader(path));
     	String[] temp;
@@ -156,6 +173,9 @@ public class RuleGeneration {
   	    br.close();
     }
     
+    /*
+     * Below method reads the training dataset...
+     */
     public static void readCricketData(String path, String sep, boolean hasHeader, String label) throws Exception{
     	BufferedReader br = new BufferedReader(new FileReader(path));
     	String s= "";
@@ -164,17 +184,6 @@ public class RuleGeneration {
     	
     	if(!hasHeader)
     		s = br.readLine();
-    	
-    	/*if(hasHeader){
-    	  s = br.readLine();
-    	  temp = s.split(sep);
-    	  
-    	  for(int i=0;i<temp.length-1;i++){
-    		  hashIndexToName.put(i, temp[i]);
-    		  hashNameToIndex.put(temp[i],i);
-    		  listRuleObj.add(new RuleObj(temp[i]));
-    	  }
-    	}*/
     	
     	while((s=br.readLine())!=null){
     		count++;
@@ -191,6 +200,9 @@ public class RuleGeneration {
     	
     }
     
+    /*
+     * Below method is used to get the index of the next feature to be added as a conjunct
+     */
     public static int getIndexLastName(List<RuleObj> list_init_level, String last_name){
     	for(int i=0;i<list_init_level.size();i++){
     		if(last_name.equals(list_init_level.get(i).name))
@@ -200,6 +212,9 @@ public class RuleGeneration {
     	return -1;
     }
     
+    /*
+     * Below method computes the FOIL's information gain
+     */
     public static float computeFoil(RuleObj next_rule, RuleObj cur_rule){
     	int p1 = next_rule.pos_count;
     	int p0 = cur_rule.pos_count;
@@ -210,34 +225,27 @@ public class RuleGeneration {
     	if(p1+n1==0)
     		return 0;
     	
-    	//double result0 = -Math.log((double)p0/(p0+n0))/Math.log(2);
-    	//double result1 = Math.log((double)p1/(p1+n1))/Math.log(2);
-    	
-    	//System.out.println("Result0: "+result0+", Result1: "+result1);
-    	
     	double foil = p1*(Math.log((double)p1/(p1+n1))/Math.log(2) - Math.log((double)p0/(p0+n0))/Math.log(2)); 
     	return (float)foil;
     }
     
+    /*
+     * Below method computes the Laplace
+     */
     public static float computeLaplace(RuleObj rule){
-    	/*float est_pos_freq = (float)((rule.pos_count+rule.neg_count)*posRecordsCount)/hashData.size();
-		float est_neg_freq = (float)((rule.pos_count+rule.neg_count)*negRecordsCount)/hashData.size();
-		
-		float statistic = (float)(2*( rule.pos_count * Math.log(rule.pos_count/est_pos_freq)/Math.log(2) - 
-				                      rule.neg_count * Math.log(rule.neg_count/est_neg_freq)/Math.log(2)));*/
-    	
     	float laplace = (float)(rule.pos_count+1)/(rule.pos_count+rule.neg_count+2);
 		
 		return laplace;
     }
     
+    /*
+     * Below method creates the next rule by adding conjuncts to existing rules
+     */
     public static RuleObj createNextRuleObj(RuleObj cur_rule, RuleObj init_rule, String class_label){
     	List<Integer> list_index = new ArrayList<Integer>();
-    	RuleObj next_rule = new RuleObj(cur_rule.name+","+init_rule.name);
+    	RuleObj next_rule = new RuleObj(cur_rule.name+","+init_rule.name); // new rule created by adding a conjunct
     	int pos_count = 0;
     	int neg_count = 0;
-    	
-    	//System.out.println("Next Rule Name: "+next_rule.name);
     	
     	String[] temp = next_rule.name.split(",");
     	for(int i=0;i<temp.length;i++){
@@ -249,7 +257,7 @@ public class RuleGeneration {
     	   boolean flag = true;
     	   
     	   for(int index : list_index){
-    		  if(!list_row.get(index).equals("1")){
+    		  if(!list_row.get(index).equals("1")){  // checks if the new rule covers the instance 
     			  flag = false;
     		      break;
     		  }
@@ -263,7 +271,7 @@ public class RuleGeneration {
     	   }
     	}
     	
-    	float accuracy = (float)pos_count/(pos_count+neg_count);  //(float)pos_count/posRecordsCount;
+    	float accuracy = (float)pos_count/(pos_count+neg_count);
     	next_rule.pos_count = pos_count;
     	next_rule.neg_count = neg_count;
     	next_rule.accuracy = accuracy;
@@ -273,6 +281,9 @@ public class RuleGeneration {
     	return next_rule;
     }
     
+    /*
+     * Below method populates the initial set of rules
+     */
     public static void populateInitialLevel(String class_label){
     	for(Entry<Integer, List<String>> e : hashData.entrySet()){
     		List<String> list = e.getValue();
@@ -292,7 +303,7 @@ public class RuleGeneration {
     	}
     	
     	for(RuleObj rule : listRuleObj){
-    		float accuracy = (float)rule.pos_count/(rule.pos_count+rule.neg_count); //(float)rule.pos_count/posRecordsCount;
+    		float accuracy = (float)rule.pos_count/(rule.pos_count+rule.neg_count);
     		rule.accuracy = accuracy;
     		
     		rule.laplace = computeLaplace(rule);
@@ -302,9 +313,12 @@ public class RuleGeneration {
     	sortListRuleObj("accuracy");
     	mainRulesList.add(listRuleObj);
     	listRuleObj = new ArrayList<RuleObj>();
-    	//System.out.println(mainRulesList);
     }
     
+    /*
+     * Below method uses the initial set of rules to create the next set of rules...
+     * The process continues until no new rules can be generated...
+     */
     public static void generateRules(String class_label, float cutoff){
     	List<RuleObj> list_init_level = mainRulesList.get(0);
     	
@@ -325,78 +339,20 @@ public class RuleGeneration {
 	    			RuleObj next_rule = createNextRuleObj(cur_rule, init_rule, class_label);
 	    			
 	    			float foil = computeFoil(next_rule, cur_rule);
-	    			//System.out.println("Foil: "+foil);
 	    			if(foil > 0){
-	    				listRuleObj.add(next_rule);
+	    				listRuleObj.add(next_rule);  // new rule is added to list if the gain is positive
 	    			}
 	    		}
 	    	}
 	    	
 	    	sortListRuleObj("accuracy");
-	    	mainRulesList.add(listRuleObj);
+	    	mainRulesList.add(listRuleObj);         // list of rules is added to main_list
 	    	listRuleObj = new ArrayList<RuleObj>();   	
     	}
     	
-    	mainRulesList.remove(mainRulesList.size()-1);
-    	populateListRuleObj("likelihood_ratio");
+    	mainRulesList.remove(mainRulesList.size()-1);  // the last list is empty. Hence it is removed...
+    	populateListRuleObj("laplace");
     	pruneRules(cutoff);
-    }
-    
-    public static void displayRules() throws Exception{
-    	FileWriter fw = new FileWriter("C:\\Users\\Shrijit\\Desktop\\output.txt");
-    	for(List<RuleObj> list : mainRulesList){
-    		for(RuleObj rule : list){
-    			fw.write("Name: "+rule.name+", Pos: "+rule.pos_count+", Neg: "+rule.neg_count+"\n");
-    			fw.write("Accuracy: "+rule.accuracy+"\n");
-    			fw.write("Likelihood Ratio: "+rule.laplace+"\n");
-    			fw.write("-------------------------------------------------------------------------\n");
-    			System.out.println("Name: "+rule.name+", Pos: "+rule.pos_count+", Neg: "+rule.neg_count);
-    			System.out.println("Accuracy: "+rule.accuracy);
-    			System.out.println("-------------------------------------------------------------------------");
-    			System.out.println();
-    		}
-    		
-    		fw.write("*********************************************************************\n");
-    		System.out.println("*********************************************************************");
-    	}
-    	
-    	fw.close();
-    }
-    
-    public static void displayPrunedRules(int k) throws Exception{
-    	FileWriter fw = new FileWriter("C:\\Users\\Shrijit\\Desktop\\output"+k+".txt");
-    	
-    		for(RuleObj rule : listRuleObj){
-    			fw.write("Name: "+rule.name+", Pos: "+rule.pos_count+", Neg: "+rule.neg_count+"\n");
-    			fw.write("Accuracy: "+rule.accuracy+"\n");
-    			fw.write("Likelihood: "+rule.laplace+"\n");
-    			fw.write("-------------------------------------------------------------------------\n");
-    			//System.out.println("Name: "+rule.name+", Pos: "+rule.pos_count+", Neg: "+rule.neg_count);
-    			//System.out.println("Accuracy: "+rule.accuracy);
-    			//System.out.println("-------------------------------------------------------------------------");
-    			//System.out.println();
-    		}
-    		
-    		//fw.write("*********************************************************************\n");
-    		//System.out.println("*********************************************************************");
-    	
-    	fw.close();
-    }
-    
-	public static void main(String[] args) throws Exception {
-	   init();
-	   String filename = "cricket1.train";
-	   String path = curDir + "\\" + filename;
-	   String sep = ",";
-	   boolean hasHeader = true;
-	   String class_label = "1";
-	   
-	   readCricketData(path, sep, hasHeader, class_label);
-	   
-	   populateInitialLevel(class_label);
-	   //generateRules(class_label);
-	   //displayRules();
-	   displayPrunedRules(3);
     }
 
 }

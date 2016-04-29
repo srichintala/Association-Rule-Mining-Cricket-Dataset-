@@ -193,35 +193,19 @@ public class EvaluateOverfitPrevention {
 	}
 	
   public static void main(String[] args) throws Exception{
-	  String type = "V";
+	  String type = "V";   // validation set used to prevent overfitting
 	  String criteria = "gini";   // splitting criteria
 	  int k = 10;
 	  boolean roc_YN = false;
 	  boolean fixed_YN = true;
 	  boolean is_trivial_classifier = false;
-	  int trivial_index = 1;
+	  int trivial_index = 2;
 	  int total_tp = 0;
 	  int total_fp = 0;
 	  int total_tn = 0;
 	  int total_fn = 0;
 	  float max = Float.NEGATIVE_INFINITY;
 	  Node bestNode = null;
-	  
-	  /*BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-	  System.out.println("Please enter 1 for Pessimistic, 2 for Validation Set and 3 for MDL: ");
-	  
-	  String s = br.readLine();
-	  if(!s.equals("1") && !s.equals("2") && !s.equals("3")){
-		  System.out.println("Invalid option entered...System aborting..");
-		  return;
-	  }
-	  
-	  if(s.equals("1"))
-		  type = "P";
-	  else if(s.equals("2"))
-	      type = "V";
-	  else
-		  type = "M";*/
 	  
 	  init(criteria, trivial_index);
 	  

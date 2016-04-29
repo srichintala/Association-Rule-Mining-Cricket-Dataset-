@@ -144,7 +144,7 @@ public class EvaluateBeamSearch {
 	  int total_fp = 0;
 	  int total_tn = 0;
 	  int total_fn = 0;
-	  int trivial_index = 1;
+	  int trivial_index = 2;
 	  boolean is_trivial_classifier = false;
   	  BeamNode bestNode = null;
   	  init(criteria, m, k, trivial_index);

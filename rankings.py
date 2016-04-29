@@ -1,12 +1,6 @@
 import urllib.request,re
 
-def display_list(list_tr):
-    for tr in list_tr:
-        print(tr)
-        print('****************************')
-
 def read_web_page(year, file):
-    #file = open('ICC_Rankings_'+year,'w')
     try:
         web_page = urllib.request.urlopen("https://en.wikipedia.org/wiki/International_cricket_in_"+year)
         lines = web_page.read().decode(errors="replace")
@@ -20,7 +14,6 @@ def read_web_page(year, file):
         list_tr = list_lines[1].split("</table>")[0].split("<tr>")
         main_list_td = []
 
-        #display_list(list_tr)
         for i in range(1,len(list_tr)):
             tr = list_tr[i].split("</tr>")
             for temp_row in tr:
@@ -36,14 +29,11 @@ def read_web_page(year, file):
                 else:
                   print(list_td[i].split("<a href=")[1].split('">')[1].split("</a>")[0])
                   file.write(list_td[i].split("<a href=")[1].split('">')[1].split("</a>")[0]+"\n")  
-                  #print(list_td[i].split("<a href=")[0].split('">')[1].split("</a>")[0])
 
         print()
-        #file.close()
     except:
         print('Skipping Year: '+year)
         print()
-        #file.close()
 
 def main():
     file = open("ICC_Rankings.csv","w")
